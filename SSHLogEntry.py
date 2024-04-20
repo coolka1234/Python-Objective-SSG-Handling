@@ -57,6 +57,17 @@ class SSHLogEntry(ABC):
     @abstractmethod
     def validate(self):
         pass
+    @property
+    def has_ip(self):
+        return self.get_ipv4s() is not None
+    def __repr__(self) -> str:
+        return super().__repr__()
+    def __eq__(self, o: object) -> bool:
+        return super().__eq__(o)
+    def __gt__(self, o: object) -> bool:
+        return super().__gt__(o)
+    def __lt__(self, o: object) -> bool:
+        return super().__lt__(o)
     
 
 
@@ -67,7 +78,7 @@ class SSH_error(SSHLogEntry):
         self.messege= self.get_messege_type()
     def __str__(self):
         return f'{'\033[93m'}{self.month} {self.day} {self.time} {self.username} {self.pid} {self.description} {self.error}{'\033[0m'}'
-    def validate(self):
+    def validate(self):                   
         if 'error' in self.raw_desc.lower():
             return True
         return False
