@@ -2,6 +2,7 @@ import datetime
 import re
 import ipaddress
 from abc import ABC, abstractmethod
+import datetime
 class SSHLogEntry(ABC):
     def __init__(self, log):
         try:
@@ -61,13 +62,19 @@ class SSHLogEntry(ABC):
     def has_ip(self):
         return self.get_ipv4s() is not None
     def __repr__(self) -> str:
-        return super().__repr__()
+        return f"SSHLogEntry({self.month}, {self.day}, {self.time}, {self.username}, {self.pid}, {self.description})"
     def __eq__(self, o: object) -> bool:
-        return super().__eq__(o)
+        if self.month == o.month and self.day == o.day and self.time == o.time and self.username == o.username and self.pid == o.pid and self.description == o.description:
+            return True
+        return False
     def __gt__(self, o: object) -> bool:
-        return super().__gt__(o)
+        if datetime.datetime.strptime(self.month+self.day+self.time, '%b%d%H:%M:%S') > datetime.datetime.strptime(o.month+o.day+o.time, '%b%d%H:%M:%S'):
+            return True
+        return False
     def __lt__(self, o: object) -> bool:
-        return super().__lt__(o)
+        if datetime.datetime.strptime(self.month+self.day+self.time, '%b%d%H:%M:%S') < datetime.datetime.strptime(o.month+o.day+o.time, '%b%d%H:%M:%S'):
+            return True
+        return False
     
 
 
