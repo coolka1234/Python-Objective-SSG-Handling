@@ -33,7 +33,7 @@ class SSHLogEntry(ABC):
             if ip not in ipv_list:
                 ipv_list.append(ipaddress.IPv4Address(ip))
         return ipv_list
-    import re
+    
     def get_messege_type(self):
         success_pattern = r'check pass'
         fail_pattern = r'authentication failure|authentication failures'
