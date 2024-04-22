@@ -6,7 +6,7 @@ import datetime
 class SSHLogEntry(ABC):
     def __init__(self, log):
         try:
-            self.raw_desc=log
+            self._raw_desc=log
             log= log.split(': ')
             data_list = log[0].split()
             self.month = data_list[0]
@@ -20,19 +20,23 @@ class SSHLogEntry(ABC):
                 self.description = log[1]
         except Exception:
             self.description = "incorrect log format"
+    
+    raw_desc=property(
+        lambda self: self._raw_desc,
+        lambda self, value: setattr(self, '_raw_desc', value),
+        lambda self: delattr(self, '_raw_desc'),
+        doc='raw description of the log entry'
+    )
     def __str__(self):
         return f'{self.month} {self.day} {self.time} {self.username} {self.pid} {self.description}'
     
     def get_ipv4s(self):
         ipv4_pattern = r"\b(?:\d{1,3}\.){3}\d{1,3}\b"
-        ipv4_addresses = re.findall(ipv4_pattern, self.description)
+        ipv4_addresses = re.match(ipv4_pattern, self.description)
         if len(ipv4_addresses) == 0:
             return None
-        ipv_list = []
-        for ip in ipv4_addresses:
-            if ip not in ipv_list:
-                ipv_list.append(ipaddress.IPv4Address(ip))
-        return ipv_list
+        return [ipaddress.ip_address(ip) for ip in ipv4_addresses]
+    
     
     def get_messege_type(self):
         success_pattern = r'check pass'
@@ -81,10 +85,10 @@ class SSHLogEntry(ABC):
 class SSH_error(SSHLogEntry):
     def __init__(self, log):
         super().__init__(log)
-        self.error = self.description
+        self.error_desc = re.findall(r'error:.*', self.description)
         self.messege= self.get_messege_type()
     def __str__(self):
-        return f'{'\033[93m'}{self.month} {self.day} {self.time} {self.username} {self.pid} {self.description} {self.error}{'\033[0m'}'
+        return f'{'\033[93m'}{self.month} {self.day} {self.time} {self.username} {self.pid} {self.description} {self.error_desc}{'\033[0m'}'
     def validate(self):                   
         if 'error' in self.raw_desc.lower():
             return True
@@ -93,10 +97,11 @@ class SSH_error(SSHLogEntry):
 class SSH_accepted(SSHLogEntry):
     def __init__(self, log):
         super().__init__(log)
-        self.accepted = self.description
+        self.user = re.findall(r'for \w+', self.description)
+        self.port = re.findall(r'port \d+', self.description)
         self.messege= self.get_messege_type()
     def __str__(self):
-        return f'{'\033[92m'}{self.month} {self.day} {self.time} {self.username} {self.pid} {self.description} {self.accepted}{'\033[0m'}'
+        return f'{'\033[92m'}{self.month} {self.day} {self.time} {self.username} {self.pid} {self.description} {self.user}{'\033[0m'}'
     def validate(self):
         if 'accepted' in self.raw_desc.lower():
             return True
@@ -105,10 +110,11 @@ class SSH_accepted(SSHLogEntry):
 class SSH_rejected(SSHLogEntry):
     def __init__(self, log):
         super().__init__(log)
-        self.rejected = self.description
+        self.user = re.findall(r'user \w+', self.description)
+        self.port = re.findall(r'port \d+', self.description)
         self.messege= self.get_messege_type()
     def __str__(self):
-        return f'{'\033[91m'}{self.month} {self.day} {self.time} {self.username} {self.pid} {self.description} {self.rejected}{'\033[0m'}'
+        return f'{'\033[91m'}{self.month} {self.day} {self.time} {self.username} {self.pid} {self.description} {self.user}{'\033[0m'}'
     def validate(self):
         if 'failed' in self.raw_desc.lower():
             return True
@@ -124,5 +130,5 @@ class SSH_other(SSHLogEntry):
     def validate(self):
         return True
 #test
-SSH=SSH_rejected('Dec 10 07:07:38 LabSZ sshd[24206]: input_userauth_request: invalid user test9 [preauth]')
+SSH=SSH_other('Dec 10 07:07:38 LabSZ sshd[24206]: input_userauth_request: invalid user test9 [preauth]')
 print(SSH.__str__())
