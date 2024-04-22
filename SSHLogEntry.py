@@ -27,6 +27,7 @@ class SSHLogEntry(ABC):
         lambda self: delattr(self, '_raw_desc'),
         doc='raw description of the log entry'
     )
+
     def __str__(self):
         return f'{self.month} {self.day} {self.time} {self.username} {self.pid} {self.description}'
     
@@ -62,6 +63,7 @@ class SSHLogEntry(ABC):
     @abstractmethod
     def validate(self):
         pass
+    has_ip = property(get_ipv4s)
     @property
     def has_ip(self):
         return self.get_ipv4s() is not None

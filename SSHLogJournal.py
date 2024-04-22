@@ -4,7 +4,7 @@ class SSHLogJournal:
         self.entries = []
 
     def append(self, entry):
-        newEntry= SSHLogEntry.SSH_other(entry)
+        newEntry= SSHLogEntry.SSH_error(entry)
         newEntry.validate()
         self.entries.append(newEntry)
     
