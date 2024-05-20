@@ -3,6 +3,7 @@ import re
 import ipaddress
 from abc import ABC, abstractmethod
 import datetime
+from typing import List, Literal, Optional, Union
 class SSHLogEntry(ABC):
     def __init__(self, log):
         try:
@@ -28,10 +29,10 @@ class SSHLogEntry(ABC):
         doc='raw description of the log entry'
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.month} {self.day} {self.time} {self.username} {self.pid} {self.description}'
     
-    def get_ipv4s(self):
+    def get_ipv4s(self) -> None | List[ipaddress.IPv4Address | ipaddress.IPv6Address]:
         ipv4_pattern = r"\b(?:\d{1,3}\.){3}\d{1,3}\b"
         ipv4_addresses = re.match(ipv4_pattern, self.description)
         if len(ipv4_addresses) == 0:
@@ -39,7 +40,7 @@ class SSHLogEntry(ABC):
         return [ipaddress.ip_address(ip) for ip in ipv4_addresses]
     
     
-    def get_messege_type(self):
+    def get_messege_type(self) -> Literal['success_login'] | Literal['failed_login'] | Literal['disconnect'] | Literal['failed password'] | Literal['invalid user'] | Literal['break in attempt'] | Literal['other']:
         success_pattern = r'check pass'
         fail_pattern = r'authentication failure|authentication failures'
         disconnect_pattern = r'disconnect|Connection closed'
@@ -61,11 +62,11 @@ class SSHLogEntry(ABC):
         else:
             return 'other'
     @abstractmethod
-    def validate(self):
+    def validate(self) -> None:
         pass
     has_ip = property(get_ipv4s)
     @property
-    def has_ip(self):
+    def has_ip(self) -> bool:
         return self.get_ipv4s() is not None
     def __repr__(self) -> str:
         return f"SSHLogEntry({self.month}, {self.day}, {self.time}, {self.username}, {self.pid}, {self.description})"
@@ -87,11 +88,11 @@ class SSHLogEntry(ABC):
 class SSH_error(SSHLogEntry):
     def __init__(self, log):
         super().__init__(log)
-        self.error_desc = re.findall(r'error:.*', self.description)
-        self.messege= self.get_messege_type()
-    def __str__(self):
+        self.error_desc: List[re.Any] = re.findall(r'error:.*', self.description)
+        self.messege: Literal['success_login'] | Literal['failed_login'] | Literal['disconnect'] | Literal['failed password'] | Literal['invalid user'] | Literal['break in attempt'] | Literal['other']= self.get_messege_type()
+    def __str__(self) -> str:
         return f'{'\033[93m'}{self.month} {self.day} {self.time} {self.username} {self.pid} {self.description} {self.error_desc}{'\033[0m'}'
-    def validate(self):                   
+    def validate(self) -> bool:                   
         if 'error' in self.raw_desc.lower():
             return True
         return False
@@ -99,38 +100,38 @@ class SSH_error(SSHLogEntry):
 class SSH_accepted(SSHLogEntry):
     def __init__(self, log):
         super().__init__(log)
-        self.user = re.findall(r'for \w+', self.description)
-        self.port = re.findall(r'port \d+', self.description)
-        self.messege= self.get_messege_type()
-    def __str__(self):
+        self.user: List[re.Any] = re.findall(r'for \w+', self.description)
+        self.port: List[re.Any] = re.findall(r'port \d+', self.description)
+        self.messege: Literal['success_login'] | Literal['failed_login'] | Literal['disconnect'] | Literal['failed password'] | Literal['invalid user'] | Literal['break in attempt'] | Literal['other']= self.get_messege_type()
+    def __str__(self) -> str:
         return f'{'\033[92m'}{self.month} {self.day} {self.time} {self.username} {self.pid} {self.description} {self.user}{'\033[0m'}'
-    def validate(self):
+    def validate(self) -> bool:
         if 'accepted' in self.raw_desc.lower():
             return True
         return False
 
 class SSH_rejected(SSHLogEntry):
-    def __init__(self, log):
+    def __init__(self, log) -> None:
         super().__init__(log)
-        self.user = re.findall(r'user \w+', self.description)
-        self.port = re.findall(r'port \d+', self.description)
-        self.messege= self.get_messege_type()
-    def __str__(self):
+        self.user: List[re.Any] = re.findall(r'user \w+', self.description)
+        self.port: List[re.Any] = re.findall(r'port \d+', self.description)
+        self.messege: Literal['success_login'] | Literal['failed_login'] | Literal['disconnect'] | Literal['failed password'] | Literal['invalid user'] | Literal['break in attempt'] | Literal['other']= self.get_messege_type()
+    def __str__(self) -> str:
         return f'{'\033[91m'}{self.month} {self.day} {self.time} {self.username} {self.pid} {self.description} {self.user}{'\033[0m'}'
-    def validate(self):
+    def validate(self) -> bool:
         if 'failed' in self.raw_desc.lower():
             return True
         return False
 
 class SSH_other(SSHLogEntry):
-    def __init__(self, log):
+    def __init__(self, log) -> None:
         super().__init__(log)
         self.other = self.description
-        self.messege= self.get_messege_type()
-    def __str__(self):
+        self.messege: Literal['success_login'] | Literal['failed_login'] | Literal['disconnect'] | Literal['failed password'] | Literal['invalid user'] | Literal['break in attempt'] | Literal['other']= self.get_messege_type()
+    def __str__(self) -> str:
         return f'{'\033[94m'}{self.month} {self.day} {self.time} {self.username} {self.pid} {self.description} {self.other}{'\033[0m'}'
-    def validate(self):
+    def validate(self) -> Literal[True]:
         return True
 #test
-SSH=SSH_other('Dec 10 07:07:38 LabSZ sshd[24206]: input_userauth_request: invalid user test9 [preauth]')
+SSH=SSH_rejected('Dec 10 07:07:38 LabSZ sshd[24206]: input_userauth_request: invalid user test9 [preauth]')
 print(SSH.__str__())
